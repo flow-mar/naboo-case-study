@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
-import { Field, ID, ObjectType } from '@nestjs/graphql';
+import { Field, HideField, ID, ObjectType } from '@nestjs/graphql';
 
 @ObjectType()
 @Schema({ timestamps: true })
@@ -24,6 +24,7 @@ export class User extends Document {
   email!: string;
 
   @Field()
+  @HideField()
   @Prop({ required: true })
   password!: string;
 
