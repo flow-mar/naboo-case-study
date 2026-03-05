@@ -3,9 +3,100 @@ import { withAuth } from "@/hocs";
 import { useAuth } from "@/hooks";
 import { Avatar, Flex, Text, Title, Grid, Stack } from "@mantine/core";
 import Head from "next/head";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  rectSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { useState, useEffect } from "react";
+import { useMutation } from "@apollo/client";
+import ReorderFavorites from "@/graphql/mutations/user/reorderFavorites";
+
+import { ActivityFragment } from "@/graphql/generated/types";
+
+const SortableActivity = ({ activity }: { activity: ActivityFragment }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: activity.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 100 : 0,
+    position: 'relative' as const,
+  };
+
+  return (
+    <Grid.Col span={4} ref={setNodeRef} style={style}>
+      <Activity
+        activity={activity}
+        isSortable
+        dragHandleProps={{ ...attributes, ...listeners }}
+      />
+    </Grid.Col>
+  );
+};
 
 const Profile = () => {
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
+  const [favorites, setFavorites] = useState(user?.favorites || []);
+  const [reorderFavorites] = useMutation(ReorderFavorites);
+
+  useEffect(() => {
+    if (user?.favorites) {
+      setFavorites(user.favorites);
+    }
+  }, [user?.favorites]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = favorites.findIndex((f) => f.id === active.id);
+      const newIndex = favorites.findIndex((f) => f.id === over.id);
+
+      const newFavorites = arrayMove(favorites, oldIndex, newIndex);
+      setFavorites(newFavorites);
+
+      reorderFavorites({
+        variables: {
+          ids: newFavorites.map((f) => f.id),
+        },
+      }).then((res) => {
+        if (res.data?.reorderFavorites) {
+          setUser(res.data.reorderFavorites);
+        }
+      }).catch((err) => {
+        console.error("Failed to reorder favorites", err);
+        // Revert on error
+        setFavorites(user?.favorites || []);
+      });
+    }
+  };
 
   return (
     <>
@@ -27,19 +118,28 @@ const Profile = () => {
 
       <Stack mt="xl">
         <Title order={2}>Mes favoris</Title>
-        <Grid>
-          {user?.favorites && user.favorites.length > 0 ? (
-            user.favorites.map((activity) => (
-              <Grid.Col span={4} key={activity.id}>
-                <Activity activity={activity} />
-              </Grid.Col>
-            ))
-          ) : (
-            <Grid.Col span={12}>
-              <Text>Vous n&apos;avez pas encore de favoris.</Text>
-            </Grid.Col>
-          )}
-        </Grid>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <Grid>
+            <SortableContext
+              items={favorites.map((f) => f.id)}
+              strategy={rectSortingStrategy}
+            >
+              {favorites && favorites.length > 0 ? (
+                favorites.map((activity) => (
+                  <SortableActivity key={activity.id} activity={activity} />
+                ))
+              ) : (
+                <Grid.Col span={12}>
+                  <Text>Vous n&apos;avez pas encore de favoris.</Text>
+                </Grid.Col>
+              )}
+            </SortableContext>
+          </Grid>
+        </DndContext>
       </Stack>
     </>
   );
