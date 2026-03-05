@@ -1,9 +1,9 @@
 import gql from "graphql-tag";
 import ActivityFragment from "../../fragments/activity";
 
-const GetUser = gql`
-  query GetUser {
-    getMe {
+const AddFavorite = gql`
+  mutation AddFavorite($activityId: String!) {
+    addFavorite(activityId: $activityId) {
       id
       firstName
       lastName
@@ -16,4 +16,4 @@ const GetUser = gql`
   ${ActivityFragment}
 `;
 
-export default GetUser;
+export default AddFavorite;

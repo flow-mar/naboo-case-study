@@ -73,7 +73,9 @@ export default function Home({ activities }: HomeProps) {
             </Flex>
             <Grid>
               {activities.map((activity) => (
-                <Activity activity={activity} key={activity.id} />
+                <Grid.Col span={4} key={activity.id}>
+                  <Activity activity={activity} />
+                </Grid.Col>
               ))}
             </Grid>
           </>

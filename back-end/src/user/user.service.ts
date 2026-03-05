@@ -55,6 +55,42 @@ export class UserService {
     return this.userModel.countDocuments().exec();
   }
 
+  async addFavorite(userId: string, activityId: string): Promise<User> {
+    const user = await this.userModel.findByIdAndUpdate(
+      userId,
+      { $addToSet: { favorites: activityId } },
+      { new: true },
+    );
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    return user;
+  }
+
+  async removeFavorite(userId: string, activityId: string): Promise<User> {
+    const user = await this.userModel.findByIdAndUpdate(
+      userId,
+      { $pull: { favorites: activityId } },
+      { new: true },
+    );
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    return user;
+  }
+
+  async reorderFavorites(userId: string, ids: string[]): Promise<User> {
+    const user = await this.userModel.findByIdAndUpdate(
+      userId,
+      { favorites: ids },
+      { new: true },
+    );
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    return user;
+  }
+
   async setDebugMode({
     userId,
     enabled,

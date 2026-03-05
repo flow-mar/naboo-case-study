@@ -22,6 +22,7 @@ import { createContext, useEffect, useState } from "react";
 interface AuthContextType {
   user: GetUserQuery["getMe"] | null;
   isLoading: boolean;
+  setUser: (user: GetUserQuery["getMe"] | null) => void;
   handleSignin: (input: SignInInput) => Promise<void>;
   handleSignup: (input: SignUpInput) => Promise<void>;
   handleLogout: () => Promise<void>;
@@ -30,6 +31,7 @@ interface AuthContextType {
 export const AuthContext = createContext<AuthContextType>({
   user: null,
   isLoading: false,
+  setUser: () => {},
   handleSignin: () => Promise.resolve(),
   handleSignup: () => Promise.resolve(),
   handleLogout: () => Promise.resolve(),
@@ -60,7 +62,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     } else {
       setIsLoading(false);
     }
-  }, [user]);
+  }, [user, getUser]);
 
   const handleSignin = async (input: SignInInput) => {
     try {
@@ -105,7 +107,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   return (
     <AuthContext.Provider
-      value={{ user, isLoading, handleSignin, handleSignup, handleLogout }}
+      value={{
+        user,
+        isLoading,
+        setUser,
+        handleSignin,
+        handleSignup,
+        handleLogout,
+      }}
     >
       {children}
     </AuthContext.Provider>

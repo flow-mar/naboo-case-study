@@ -48,7 +48,9 @@ const MyActivities = ({ activities }: MyActivitiesProps) => {
       <Grid>
         {activities.length > 0 ? (
           activities.map((activity) => (
-            <Activity activity={activity} key={activity.id} />
+            <Grid.Col span={4} key={activity.id}>
+              <Activity activity={activity} />
+            </Grid.Col>
           ))
         ) : (
           <EmptyData />

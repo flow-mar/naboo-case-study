@@ -1,6 +1,8 @@
 import { ActivityFragment } from "@/graphql/generated/types";
 import { useGlobalStyles } from "@/utils";
-import { Badge, Button, Card, Grid, Group, Image, Text } from "@mantine/core";
+import { ActionIcon, Badge, Button, Card, Group, Image, Text } from "@mantine/core";
+import { useFavorite } from "@/hooks";
+import { IconHeart } from "@tabler/icons-react";
 import Link from "next/link";
 
 interface ActivityProps {
@@ -9,11 +11,11 @@ interface ActivityProps {
 
 export function Activity({ activity }: ActivityProps) {
   const { classes } = useGlobalStyles();
+  const { isFavorite, toggleFavorite, isLoading } = useFavorite(activity.id);
 
   return (
-    <Grid.Col span={4}>
-      <Card shadow="sm" padding="lg" radius="md" withBorder>
-        <Card.Section>
+    <Card shadow="sm" padding="lg" radius="md" withBorder>
+      <Card.Section>
           <Image
             src="https://dummyimage.com/480x4:3"
             height={160}
@@ -21,10 +23,24 @@ export function Activity({ activity }: ActivityProps) {
           />
         </Card.Section>
 
-        <Group position="apart" mt="md" mb="xs">
+        <Group position="apart" mt="md" mb="xs" noWrap>
           <Text weight={500} className={classes.ellipsis}>
             {activity.name}
           </Text>
+          <ActionIcon
+            onClick={(e) => {
+              e.preventDefault();
+              toggleFavorite();
+            }}
+            loading={isLoading}
+            variant="transparent"
+            color={isFavorite ? "red" : "gray"}
+          >
+            <IconHeart
+              size="1.2rem"
+              fill={isFavorite ? "currentColor" : "none"}
+            />
+          </ActionIcon>
         </Group>
 
         <Group mt="md" mb="xs">
@@ -46,12 +62,11 @@ export function Activity({ activity }: ActivityProps) {
           </Text>
         )}
 
-        <Link href={`/activities/${activity.id}`} className={classes.link}>
-          <Button variant="light" color="blue" fullWidth mt="md" radius="md">
-            Voir plus
-          </Button>
-        </Link>
-      </Card>
-    </Grid.Col>
+      <Link href={`/activities/${activity.id}`} className={classes.link}>
+        <Button variant="light" color="blue" fullWidth mt="md" radius="md">
+          Voir plus
+        </Button>
+      </Link>
+    </Card>
   );
 }

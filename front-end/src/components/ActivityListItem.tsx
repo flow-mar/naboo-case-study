@@ -1,6 +1,8 @@
 import { ActivityFragment } from "@/graphql/generated/types";
 import { useGlobalStyles } from "@/utils";
-import { Box, Button, Flex, Image, Text } from "@mantine/core";
+import { ActionIcon, Box, Button, Flex, Image, Text } from "@mantine/core";
+import { useFavorite } from "@/hooks";
+import { IconHeart } from "@tabler/icons-react";
 import Link from "next/link";
 
 interface ActivityListItemProps {
@@ -9,6 +11,7 @@ interface ActivityListItemProps {
 
 export function ActivityListItem({ activity }: ActivityListItemProps) {
   const { classes } = useGlobalStyles();
+  const { isFavorite, toggleFavorite, isLoading } = useFavorite(activity.id);
 
   return (
     <Flex align="center" justify="space-between">
@@ -28,6 +31,21 @@ export function ActivityListItem({ activity }: ActivityListItemProps) {
             weight="bold"
             className={classes.ellipsis}
           >{`${activity.price}€/j`}</Text>
+          <ActionIcon
+            onClick={(e) => {
+              e.preventDefault();
+              toggleFavorite();
+            }}
+            loading={isLoading}
+            variant="transparent"
+            color={isFavorite ? "red" : "gray"}
+            mt="xs"
+          >
+            <IconHeart
+              size="1.2rem"
+              fill={isFavorite ? "currentColor" : "none"}
+            />
+          </ActionIcon>
         </Box>
       </Flex>
       <Link href={`/activities/${activity.id}`} className={classes.link}>
