@@ -17,12 +17,13 @@ interface DiscoverProps {
 
 export const getServerSideProps: GetServerSideProps<
   DiscoverProps
-> = async () => {
+> = async ({req}) => {
   const response = await graphqlClient.query<
     GetActivitiesQuery,
     GetActivitiesQueryVariables
   >({
     query: GetActivities,
+    context: { headers: { Cookie: req.headers.cookie || "" } },
   });
   return { props: { activities: response.data.getActivities } };
 };

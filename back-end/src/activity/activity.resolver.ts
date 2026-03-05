@@ -37,6 +37,17 @@ export class ActivityResolver {
     return activity.owner;
   }
 
+  @ResolveField(() => Date, { nullable: true })
+  createdAt(
+    @Parent() activity: Activity,
+    @Context() context: ContextWithJWTPayload,
+  ): Date | null {
+    if (context.jwtPayload?.role === 'admin') {
+      return activity.createdAt;
+    }
+    return null;
+  }
+
   @Query(() => [Activity])
   async getActivities(): Promise<Activity[]> {
     return this.activityService.findAll();

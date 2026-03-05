@@ -40,6 +40,12 @@ export function Activity({ activity }: ActivityProps) {
           {activity.description}
         </Text>
 
+        {activity.createdAt && (
+          <Text size="xs" color="dimmed" mt="md">
+            Créé le : {new Date(activity.createdAt).toLocaleDateString()}
+          </Text>
+        )}
+
         <Link href={`/activities/${activity.id}`} className={classes.link}>
           <Button variant="light" color="blue" fullWidth mt="md" radius="md">
             Voir plus

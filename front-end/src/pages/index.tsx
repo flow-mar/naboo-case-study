@@ -15,12 +15,13 @@ interface HomeProps {
   activities: GetLatestActivitiesQuery["getLatestActivities"];
 }
 
-export const getServerSideProps: GetServerSideProps<HomeProps> = async () => {
+export const getServerSideProps: GetServerSideProps<HomeProps> = async ({req}) => {
   const response = await graphqlClient.query<
     GetLatestActivitiesQuery,
     GetLatestActivitiesQueryVariables
   >({
     query: GetLatestActivities,
+    context: { headers: { Cookie: req.headers.cookie || "" } },
   });
 
   return { props: { activities: response.data.getLatestActivities } };
