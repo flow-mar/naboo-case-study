@@ -24,7 +24,6 @@ export class User extends Document {
   @Prop({ required: true, unique: true })
   email!: string;
 
-  @Field()
   @HideField()
   @Prop({ required: true })
   password!: string;
