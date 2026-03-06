@@ -1,6 +1,7 @@
-import { City } from "@/utils";
 import { AxiosResponse } from "axios";
 import { axiosInstance } from "./axios";
+
+interface City { nom: string }
 
 export function searchCity(search: string): Promise<City[]> {
   return axiosInstance
