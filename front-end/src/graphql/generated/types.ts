@@ -14,6 +14,7 @@ export type Scalars = {
   Boolean: { input: boolean; output: boolean; }
   Int: { input: number; output: number; }
   Float: { input: number; output: number; }
+  /** A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format. */
   DateTime: { input: any; output: any; }
 };
 
@@ -28,6 +29,13 @@ export type Activity = {
   price: Scalars['Int']['output'];
 };
 
+export type AddFavoritePayload = {
+  __typename?: 'AddFavoritePayload';
+  activityId: Scalars['ID']['output'];
+  favoritesCount: Scalars['Int']['output'];
+  isFavorite: Scalars['Boolean']['output'];
+};
+
 export type CreateActivityInput = {
   city: Scalars['String']['input'];
   description: Scalars['String']['input'];
@@ -35,15 +43,34 @@ export type CreateActivityInput = {
   price: Scalars['Int']['input'];
 };
 
+export type FavoriteEdge = {
+  __typename?: 'FavoriteEdge';
+  cursor: Scalars['String']['output'];
+  node: Activity;
+};
+
+export type FavoritesConnection = {
+  __typename?: 'FavoritesConnection';
+  edges: Array<FavoriteEdge>;
+  pageInfo: FavoritesPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type FavoritesPageInfo = {
+  __typename?: 'FavoritesPageInfo';
+  endCursor?: Maybe<Scalars['String']['output']>;
+  hasNextPage: Scalars['Boolean']['output'];
+};
+
 export type Mutation = {
   __typename?: 'Mutation';
-  addFavorite: User;
+  addFavorite: AddFavoritePayload;
   createActivity: Activity;
   login: SignInDto;
   logout: Scalars['Boolean']['output'];
   register: User;
-  removeFavorite: User;
-  reorderFavorites: User;
+  removeFavorite: RemoveFavoritePayload;
+  reorderFavorites: ReorderFavoritesPayload;
 };
 
 
@@ -99,6 +126,19 @@ export type QueryGetActivityArgs = {
   id: Scalars['String']['input'];
 };
 
+export type RemoveFavoritePayload = {
+  __typename?: 'RemoveFavoritePayload';
+  activityId: Scalars['ID']['output'];
+  favoritesCount: Scalars['Int']['output'];
+  isFavorite: Scalars['Boolean']['output'];
+};
+
+export type ReorderFavoritesPayload = {
+  __typename?: 'ReorderFavoritesPayload';
+  favoritesCount: Scalars['Int']['output'];
+  ids: Array<Scalars['ID']['output']>;
+};
+
 export type SignInDto = {
   __typename?: 'SignInDto';
   access_token: Scalars['String']['output'];
@@ -119,11 +159,16 @@ export type SignUpInput = {
 export type User = {
   __typename?: 'User';
   email: Scalars['String']['output'];
-  favorites: Array<Activity>;
+  favorites: FavoritesConnection;
   firstName: Scalars['String']['output'];
   id: Scalars['ID']['output'];
   lastName: Scalars['String']['output'];
-  password: Scalars['String']['output'];
+};
+
+
+export type UserFavoritesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  first?: Scalars['Int']['input'];
 };
 
 export type ActivityFragment = { __typename?: 'Activity', id: string, city: string, description: string, name: string, price: number, createdAt?: any | null, owner: { __typename?: 'User', firstName: string, lastName: string } };
@@ -161,21 +206,21 @@ export type AddFavoriteMutationVariables = Exact<{
 }>;
 
 
-export type AddFavoriteMutation = { __typename?: 'Mutation', addFavorite: { __typename?: 'User', id: string, firstName: string, lastName: string, email: string, favorites: Array<{ __typename?: 'Activity', id: string, city: string, description: string, name: string, price: number, createdAt?: any | null, owner: { __typename?: 'User', firstName: string, lastName: string } }> } };
+export type AddFavoriteMutation = { __typename?: 'Mutation', addFavorite: { __typename?: 'AddFavoritePayload', activityId: string, isFavorite: boolean, favoritesCount: number } };
 
 export type RemoveFavoriteMutationVariables = Exact<{
   activityId: Scalars['String']['input'];
 }>;
 
 
-export type RemoveFavoriteMutation = { __typename?: 'Mutation', removeFavorite: { __typename?: 'User', id: string, firstName: string, lastName: string, email: string, favorites: Array<{ __typename?: 'Activity', id: string, city: string, description: string, name: string, price: number, createdAt?: any | null, owner: { __typename?: 'User', firstName: string, lastName: string } }> } };
+export type RemoveFavoriteMutation = { __typename?: 'Mutation', removeFavorite: { __typename?: 'RemoveFavoritePayload', activityId: string, isFavorite: boolean, favoritesCount: number } };
 
 export type ReorderFavoritesMutationVariables = Exact<{
   ids: Array<Scalars['String']['input']> | Scalars['String']['input'];
 }>;
 
 
-export type ReorderFavoritesMutation = { __typename?: 'Mutation', reorderFavorites: { __typename?: 'User', id: string, firstName: string, lastName: string, email: string, favorites: Array<{ __typename?: 'Activity', id: string, city: string, description: string, name: string, price: number, createdAt?: any | null, owner: { __typename?: 'User', firstName: string, lastName: string } }> } };
+export type ReorderFavoritesMutation = { __typename?: 'Mutation', reorderFavorites: { __typename?: 'ReorderFavoritesPayload', ids: Array<string>, favoritesCount: number } };
 
 export type GetActivitiesQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -211,7 +256,7 @@ export type GetUserActivitiesQuery = { __typename?: 'Query', getActivitiesByUser
 export type GetUserQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type GetUserQuery = { __typename?: 'Query', getMe: { __typename?: 'User', id: string, firstName: string, lastName: string, email: string, favorites: Array<{ __typename?: 'Activity', id: string, city: string, description: string, name: string, price: number, createdAt?: any | null, owner: { __typename?: 'User', firstName: string, lastName: string } }> } };
+export type GetUserQuery = { __typename?: 'Query', getMe: { __typename?: 'User', id: string, firstName: string, lastName: string, email: string, favorites: { __typename?: 'FavoritesConnection', totalCount: number, edges: Array<{ __typename?: 'FavoriteEdge', node: { __typename?: 'Activity', id: string, city: string, description: string, name: string, price: number, createdAt?: any | null, owner: { __typename?: 'User', firstName: string, lastName: string } } }> } } };
 
 export type GetCitiesQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -290,13 +335,19 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 /** Mapping between all available schema types and the resolvers types */
 export type ResolversTypes = {
   Activity: ResolverTypeWrapper<Activity>;
+  AddFavoritePayload: ResolverTypeWrapper<AddFavoritePayload>;
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
   CreateActivityInput: CreateActivityInput;
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
+  FavoriteEdge: ResolverTypeWrapper<FavoriteEdge>;
+  FavoritesConnection: ResolverTypeWrapper<FavoritesConnection>;
+  FavoritesPageInfo: ResolverTypeWrapper<FavoritesPageInfo>;
   ID: ResolverTypeWrapper<Scalars['ID']['output']>;
   Int: ResolverTypeWrapper<Scalars['Int']['output']>;
   Mutation: ResolverTypeWrapper<{}>;
   Query: ResolverTypeWrapper<{}>;
+  RemoveFavoritePayload: ResolverTypeWrapper<RemoveFavoritePayload>;
+  ReorderFavoritesPayload: ResolverTypeWrapper<ReorderFavoritesPayload>;
   SignInDto: ResolverTypeWrapper<SignInDto>;
   SignInInput: SignInInput;
   SignUpInput: SignUpInput;
@@ -307,13 +358,19 @@ export type ResolversTypes = {
 /** Mapping between all available schema types and the resolvers parents */
 export type ResolversParentTypes = {
   Activity: Activity;
+  AddFavoritePayload: AddFavoritePayload;
   Boolean: Scalars['Boolean']['output'];
   CreateActivityInput: CreateActivityInput;
   DateTime: Scalars['DateTime']['output'];
+  FavoriteEdge: FavoriteEdge;
+  FavoritesConnection: FavoritesConnection;
+  FavoritesPageInfo: FavoritesPageInfo;
   ID: Scalars['ID']['output'];
   Int: Scalars['Int']['output'];
   Mutation: {};
   Query: {};
+  RemoveFavoritePayload: RemoveFavoritePayload;
+  ReorderFavoritesPayload: ReorderFavoritesPayload;
   SignInDto: SignInDto;
   SignInInput: SignInInput;
   SignUpInput: SignUpInput;
@@ -332,18 +389,44 @@ export type ActivityResolvers<ContextType = any, ParentType extends ResolversPar
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
+export type AddFavoritePayloadResolvers<ContextType = any, ParentType extends ResolversParentTypes['AddFavoritePayload'] = ResolversParentTypes['AddFavoritePayload']> = {
+  activityId?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  favoritesCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  isFavorite?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
 export interface DateTimeScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['DateTime'], any> {
   name: 'DateTime';
 }
 
+export type FavoriteEdgeResolvers<ContextType = any, ParentType extends ResolversParentTypes['FavoriteEdge'] = ResolversParentTypes['FavoriteEdge']> = {
+  cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  node?: Resolver<ResolversTypes['Activity'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type FavoritesConnectionResolvers<ContextType = any, ParentType extends ResolversParentTypes['FavoritesConnection'] = ResolversParentTypes['FavoritesConnection']> = {
+  edges?: Resolver<Array<ResolversTypes['FavoriteEdge']>, ParentType, ContextType>;
+  pageInfo?: Resolver<ResolversTypes['FavoritesPageInfo'], ParentType, ContextType>;
+  totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type FavoritesPageInfoResolvers<ContextType = any, ParentType extends ResolversParentTypes['FavoritesPageInfo'] = ResolversParentTypes['FavoritesPageInfo']> = {
+  endCursor?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  hasNextPage?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
 export type MutationResolvers<ContextType = any, ParentType extends ResolversParentTypes['Mutation'] = ResolversParentTypes['Mutation']> = {
-  addFavorite?: Resolver<ResolversTypes['User'], ParentType, ContextType, RequireFields<MutationAddFavoriteArgs, 'activityId'>>;
+  addFavorite?: Resolver<ResolversTypes['AddFavoritePayload'], ParentType, ContextType, RequireFields<MutationAddFavoriteArgs, 'activityId'>>;
   createActivity?: Resolver<ResolversTypes['Activity'], ParentType, ContextType, RequireFields<MutationCreateActivityArgs, 'createActivityInput'>>;
   login?: Resolver<ResolversTypes['SignInDto'], ParentType, ContextType, RequireFields<MutationLoginArgs, 'signInInput'>>;
   logout?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   register?: Resolver<ResolversTypes['User'], ParentType, ContextType, RequireFields<MutationRegisterArgs, 'signUpInput'>>;
-  removeFavorite?: Resolver<ResolversTypes['User'], ParentType, ContextType, RequireFields<MutationRemoveFavoriteArgs, 'activityId'>>;
-  reorderFavorites?: Resolver<ResolversTypes['User'], ParentType, ContextType, RequireFields<MutationReorderFavoritesArgs, 'ids'>>;
+  removeFavorite?: Resolver<ResolversTypes['RemoveFavoritePayload'], ParentType, ContextType, RequireFields<MutationRemoveFavoriteArgs, 'activityId'>>;
+  reorderFavorites?: Resolver<ResolversTypes['ReorderFavoritesPayload'], ParentType, ContextType, RequireFields<MutationReorderFavoritesArgs, 'ids'>>;
 };
 
 export type QueryResolvers<ContextType = any, ParentType extends ResolversParentTypes['Query'] = ResolversParentTypes['Query']> = {
@@ -356,6 +439,19 @@ export type QueryResolvers<ContextType = any, ParentType extends ResolversParent
   getMe?: Resolver<ResolversTypes['User'], ParentType, ContextType>;
 };
 
+export type RemoveFavoritePayloadResolvers<ContextType = any, ParentType extends ResolversParentTypes['RemoveFavoritePayload'] = ResolversParentTypes['RemoveFavoritePayload']> = {
+  activityId?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  favoritesCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  isFavorite?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type ReorderFavoritesPayloadResolvers<ContextType = any, ParentType extends ResolversParentTypes['ReorderFavoritesPayload'] = ResolversParentTypes['ReorderFavoritesPayload']> = {
+  favoritesCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  ids?: Resolver<Array<ResolversTypes['ID']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
 export type SignInDtoResolvers<ContextType = any, ParentType extends ResolversParentTypes['SignInDto'] = ResolversParentTypes['SignInDto']> = {
   access_token?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -363,19 +459,24 @@ export type SignInDtoResolvers<ContextType = any, ParentType extends ResolversPa
 
 export type UserResolvers<ContextType = any, ParentType extends ResolversParentTypes['User'] = ResolversParentTypes['User']> = {
   email?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  favorites?: Resolver<Array<ResolversTypes['Activity']>, ParentType, ContextType>;
+  favorites?: Resolver<ResolversTypes['FavoritesConnection'], ParentType, ContextType, RequireFields<UserFavoritesArgs, 'first'>>;
   firstName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   lastName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  password?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
 export type Resolvers<ContextType = any> = {
   Activity?: ActivityResolvers<ContextType>;
+  AddFavoritePayload?: AddFavoritePayloadResolvers<ContextType>;
   DateTime?: GraphQLScalarType;
+  FavoriteEdge?: FavoriteEdgeResolvers<ContextType>;
+  FavoritesConnection?: FavoritesConnectionResolvers<ContextType>;
+  FavoritesPageInfo?: FavoritesPageInfoResolvers<ContextType>;
   Mutation?: MutationResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
+  RemoveFavoritePayload?: RemoveFavoritePayloadResolvers<ContextType>;
+  ReorderFavoritesPayload?: ReorderFavoritesPayloadResolvers<ContextType>;
   SignInDto?: SignInDtoResolvers<ContextType>;
   User?: UserResolvers<ContextType>;
 };

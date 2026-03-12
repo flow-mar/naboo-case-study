@@ -21,10 +21,15 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useState, useEffect } from "react";
-import { useMutation } from "@apollo/client";
+import { useApolloClient, useMutation } from "@apollo/client";
 import ReorderFavorites from "@/graphql/mutations/user/reorderFavorites";
+import GetUser from "@/graphql/queries/auth/getUser";
 
-import { ActivityFragment } from "@/graphql/generated/types";
+import {
+  ActivityFragment,
+  GetUserQuery,
+  GetUserQueryVariables,
+} from "@/graphql/generated/types";
 
 const SortableActivity = ({ activity }: { activity: ActivityFragment }) => {
   const {
@@ -56,14 +61,25 @@ const SortableActivity = ({ activity }: { activity: ActivityFragment }) => {
 
 const Profile = () => {
   const { user, setUser } = useAuth();
-  const [favorites, setFavorites] = useState(user?.favorites || []);
+  const apolloClient = useApolloClient();
+  const [favorites, setFavorites] = useState(
+    user?.favorites?.edges?.map((e) => e.node) || [],
+  );
   const [reorderFavorites] = useMutation(ReorderFavorites);
 
   useEffect(() => {
-    if (user?.favorites) {
-      setFavorites(user.favorites);
+    if (user?.favorites?.edges) {
+      setFavorites(user.favorites.edges.map((e) => e.node));
     }
   }, [user?.favorites]);
+
+  const refreshUser = async () => {
+    const { data } = await apolloClient.query<GetUserQuery, GetUserQueryVariables>({
+      query: GetUser,
+      fetchPolicy: "network-only",
+    });
+    setUser(data.getMe);
+  };
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -88,12 +104,12 @@ const Profile = () => {
         },
       }).then((res) => {
         if (res.data?.reorderFavorites) {
-          setUser(res.data.reorderFavorites);
+          refreshUser();
         }
       }).catch((err) => {
         console.error("Failed to reorder favorites", err);
         // Revert on error
-        setFavorites(user?.favorites || []);
+        setFavorites(user?.favorites?.edges?.map((e) => e.node) || []);
       });
     }
   };

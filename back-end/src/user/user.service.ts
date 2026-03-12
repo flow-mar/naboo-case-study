@@ -1,9 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { SignUpInput } from 'src/auth/types';
 import { User } from './user.schema';
 import * as bcrypt from 'bcrypt';
+
+const MAX_FAVORITES = 50;
 
 @Injectable()
 export class UserService {
@@ -56,14 +58,35 @@ export class UserService {
   }
 
   async addFavorite(userId: string, activityId: string): Promise<User> {
-    const user = await this.userModel.findByIdAndUpdate(
-      userId,
-      { $addToSet: { favorites: activityId } },
-      { new: true },
-    );
+    const user = await this.userModel
+      .findOneAndUpdate(
+        {
+          _id: userId,
+          $or: [
+            // Idempotent: allow if already favorited, even if at the limit.
+            { favorites: activityId },
+            // Allow adding only if we're still under the limit.
+            {
+              $expr: {
+                $lt: [{ $size: '$favorites' }, MAX_FAVORITES],
+              },
+            },
+          ],
+        },
+        { $addToSet: { favorites: activityId } },
+        { new: true },
+      )
+      .exec();
+
     if (!user) {
-      throw new NotFoundException('User not found');
+      // Either the user doesn't exist, or the favorites limit was reached.
+      const exists = await this.userModel.exists({ _id: userId });
+      if (!exists) {
+        throw new NotFoundException('User not found');
+      }
+      throw new BadRequestException('Favorites limit reached');
     }
+
     return user;
   }
 
@@ -80,6 +103,9 @@ export class UserService {
   }
 
   async reorderFavorites(userId: string, ids: string[]): Promise<User> {
+    if (ids.length > MAX_FAVORITES) {
+      throw new BadRequestException('Favorites limit reached');
+    }
     const user = await this.userModel.findByIdAndUpdate(
       userId,
       { favorites: ids },

@@ -8,8 +8,13 @@ const GetUser = gql`
       firstName
       lastName
       email
-      favorites {
-        ...Activity
+      favorites(first: 50) {
+        totalCount
+        edges {
+          node {
+            ...Activity
+          }
+        }
       }
     }
   }

@@ -12,6 +12,12 @@ type Activity {
   price: Int!
 }
 
+type AddFavoritePayload {
+  activityId: ID!
+  favoritesCount: Int!
+  isFavorite: Boolean!
+}
+
 input CreateActivityInput {
   city: String!
   description: String!
@@ -24,14 +30,30 @@ A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date
 """
 scalar DateTime
 
+type FavoriteEdge {
+  cursor: String!
+  node: Activity!
+}
+
+type FavoritesConnection {
+  edges: [FavoriteEdge!]!
+  pageInfo: FavoritesPageInfo!
+  totalCount: Int!
+}
+
+type FavoritesPageInfo {
+  endCursor: String
+  hasNextPage: Boolean!
+}
+
 type Mutation {
-  addFavorite(activityId: String!): User!
+  addFavorite(activityId: String!): AddFavoritePayload!
   createActivity(createActivityInput: CreateActivityInput!): Activity!
   login(signInInput: SignInInput!): SignInDto!
   logout: Boolean!
   register(signUpInput: SignUpInput!): User!
-  removeFavorite(activityId: String!): User!
-  reorderFavorites(ids: [String!]!): User!
+  removeFavorite(activityId: String!): RemoveFavoritePayload!
+  reorderFavorites(ids: [String!]!): ReorderFavoritesPayload!
 }
 
 type Query {
@@ -42,6 +64,17 @@ type Query {
   getCities: [String!]!
   getLatestActivities: [Activity!]!
   getMe: User!
+}
+
+type RemoveFavoritePayload {
+  activityId: ID!
+  favoritesCount: Int!
+  isFavorite: Boolean!
+}
+
+type ReorderFavoritesPayload {
+  favoritesCount: Int!
+  ids: [ID!]!
 }
 
 type SignInDto {
@@ -62,9 +95,8 @@ input SignUpInput {
 
 type User {
   email: String!
-  favorites: [Activity!]!
+  favorites(after: String, first: Int! = 20): FavoritesConnection!
   firstName: String!
   id: ID!
   lastName: String!
-  password: String!
 }

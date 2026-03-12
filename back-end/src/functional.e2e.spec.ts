@@ -6,11 +6,13 @@ import * as request from 'supertest';
 import { TestModule, closeInMongodConnection } from './test/test.module';
 import { UserService } from './user/user.service';
 import { AuthService } from './auth/auth.service';
+import { ActivityService } from './activity/activity.service';
 
 describe('Functional E2E', () => {
   let app: INestApplication;
   let userService: UserService;
   let authService: AuthService;
+  let activityService: ActivityService;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -22,6 +24,7 @@ describe('Functional E2E', () => {
 
     userService = module.get<UserService>(UserService);
     authService = module.get<AuthService>(AuthService);
+    activityService = module.get<ActivityService>(ActivityService);
   });
 
   afterAll(async () => {
@@ -68,7 +71,9 @@ describe('Functional E2E', () => {
 
     const activityId = createResponse.body.data.createActivity.id;
     expect(activityId).toBeDefined();
-    expect(createResponse.body.data.createActivity.name).toBe("Nouvelle Activité");
+    expect(createResponse.body.data.createActivity.name).toBe(
+      'Nouvelle Activité',
+    );
 
     // 2. Get list of activities as a user (createdAt should be null)
     const getActivitiesQuery = `
@@ -87,7 +92,9 @@ describe('Functional E2E', () => {
       .send({ query: getActivitiesQuery })
       .expect(200);
 
-    const userActivity = userListResponse.body.data.getActivities.find((a: any) => a.id === activityId);
+    const userActivity = userListResponse.body.data.getActivities.find(
+      (a: any) => a.id === activityId,
+    );
     expect(userActivity).toBeDefined();
     expect(userActivity.createdAt).toBeNull();
 
@@ -98,7 +105,9 @@ describe('Functional E2E', () => {
       .send({ query: getActivitiesQuery })
       .expect(200);
 
-    const adminActivity = adminListResponse.body.data.getActivities.find((a: any) => a.id === activityId);
+    const adminActivity = adminListResponse.body.data.getActivities.find(
+      (a: any) => a.id === activityId,
+    );
     expect(adminActivity).toBeDefined();
     expect(adminActivity.createdAt).not.toBeNull();
     expect(new Date(adminActivity.createdAt).getTime()).toBeGreaterThan(0);
@@ -107,10 +116,9 @@ describe('Functional E2E', () => {
     const addFavoriteMutation = `
       mutation {
         addFavorite(activityId: "${activityId}") {
-          id
-          favorites {
-            id
-          }
+          activityId
+          isFavorite
+          favoritesCount
         }
       }
     `;
@@ -121,7 +129,114 @@ describe('Functional E2E', () => {
       .send({ query: addFavoriteMutation })
       .expect(200);
 
-    const favorites = favoriteResponse.body.data.addFavorite.favorites;
-    expect(favorites.some((f: any) => f.id === activityId)).toBe(true);
+    expect(favoriteResponse.body.data.addFavorite).toMatchObject({
+      activityId,
+      isFavorite: true,
+      favoritesCount: 1,
+    });
+
+    const getMeWithFavoritesQuery = `
+      query {
+        getMe {
+          id
+          favorites(first: 10) {
+            totalCount
+            edges {
+              node {
+                id
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    const getMeResponse = await request(app.getHttpServer())
+      .post('/graphql')
+      .set('jwt', userJwt)
+      .send({ query: getMeWithFavoritesQuery })
+      .expect(200);
+
+    const edges = getMeResponse.body.data.getMe.favorites.edges;
+    expect(edges.some((e: any) => e.node.id === activityId)).toBe(true);
+  });
+
+  it('should refuse adding a 51st favorite', async () => {
+    const password = 'Password123!';
+    const user = await userService.createUser({
+      email: `${randomUUID()}@user.com`,
+      password,
+      firstName: 'Test',
+      lastName: 'USER',
+      role: 'user',
+    });
+
+    const userJwt = await authService.generateToken({ user });
+
+    const activityIds: string[] = [];
+    for (let i = 0; i < 51; i += 1) {
+      const activity = await activityService.create(user.id, {
+        name: `Fav ${i}`,
+        city: 'Paris',
+        price: 10,
+        description: 'Desc',
+      });
+      activityIds.push(activity._id.toString());
+    }
+
+    for (let i = 0; i < 50; i += 1) {
+      const mutation = `
+        mutation {
+          addFavorite(activityId: "${activityIds[i]}") {
+            favoritesCount
+          }
+        }
+      `;
+
+      const res = await request(app.getHttpServer())
+        .post('/graphql')
+        .set('jwt', userJwt)
+        .send({ query: mutation })
+        .expect(200);
+
+      expect(res.body.errors).toBeUndefined();
+      expect(res.body.data.addFavorite.favoritesCount).toBe(i + 1);
+    }
+
+    const exceedMutation = `
+      mutation {
+        addFavorite(activityId: "${activityIds[50]}") {
+          favoritesCount
+        }
+      }
+    `;
+
+    const exceedRes = await request(app.getHttpServer())
+      .post('/graphql')
+      .set('jwt', userJwt)
+      .send({ query: exceedMutation })
+      .expect(200);
+
+    expect(exceedRes.body.data?.addFavorite ?? null).toBeNull();
+    expect(exceedRes.body.errors?.[0]?.message).toContain(
+      'Favorites limit reached',
+    );
+
+    const idempotentMutation = `
+      mutation {
+        addFavorite(activityId: "${activityIds[0]}") {
+          favoritesCount
+        }
+      }
+    `;
+
+    const idempotentRes = await request(app.getHttpServer())
+      .post('/graphql')
+      .set('jwt', userJwt)
+      .send({ query: idempotentMutation })
+      .expect(200);
+
+    expect(idempotentRes.body.errors).toBeUndefined();
+    expect(idempotentRes.body.data.addFavorite.favoritesCount).toBe(50);
   });
 });

@@ -1,7 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose, { Document } from 'mongoose';
 import { Field, HideField, ID, ObjectType } from '@nestjs/graphql';
-import { Activity } from '../activity/activity.schema';
 
 @ObjectType()
 @Schema({ timestamps: true })
@@ -31,9 +30,9 @@ export class User extends Document {
   @Prop()
   token?: string;
 
-  @Field(() => [Activity])
+  @HideField()
   @Prop({ type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Activity' }] })
-  favorites!: Activity[];
+  favorites!: mongoose.Types.ObjectId[];
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

@@ -14,7 +14,10 @@ const user: GetUserQuery["getMe"] = {
   email: "user1@test.fr",
   firstName: "john",
   lastName: "doe",
-  favorites: [],
+  favorites: {
+    totalCount: 0,
+    edges: [],
+  },
 };
 
 describe("la fonction checkRouteAccess", () => {
