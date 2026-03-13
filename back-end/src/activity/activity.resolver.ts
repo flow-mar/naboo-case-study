@@ -9,10 +9,13 @@ import {
   ResolveField,
   ID,
 } from '@nestjs/graphql';
-import { UseGuards } from '@nestjs/common';
+import {
+  BadRequestException,
+  NotFoundException,
+  UseGuards,
+} from '@nestjs/common';
 import { ActivityService } from './activity.service';
 import { AuthGuard } from 'src/auth/auth.guard';
-import { UserService } from 'src/user/user.service';
 import { Activity } from './activity.schema';
 
 import { CreateActivityInput } from './activity.inputs.dto';
@@ -21,10 +24,7 @@ import { ContextWithJWTPayload } from 'src/auth/types/context';
 
 @Resolver(() => Activity)
 export class ActivityResolver {
-  constructor(
-    private readonly activityService: ActivityService,
-    private readonly userServices: UserService,
-  ) {}
+  constructor(private readonly activityService: ActivityService) {}
 
   @ResolveField(() => ID)
   id(@Parent() activity: Activity): string {
@@ -32,9 +32,21 @@ export class ActivityResolver {
   }
 
   @ResolveField(() => User)
-  async owner(@Parent() activity: Activity): Promise<User> {
-    await activity.populate('owner');
-    return activity.owner;
+  async owner(
+    @Parent() activity: Activity,
+    @Context() context: ContextWithJWTPayload,
+  ): Promise<User> {
+    const ownerValue: User = activity.owner;
+    const ownerId = ownerValue?._id.toString() ?? ownerValue.toString();
+    if (!ownerId) {
+      throw new BadRequestException('Activity owner is missing');
+    }
+
+    const user = await context.loaders.userById.load(ownerId);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    return user;
   }
 
   @ResolveField(() => Date, { nullable: true })

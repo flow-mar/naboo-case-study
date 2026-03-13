@@ -14,17 +14,20 @@ import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { JwtModule, JwtService } from '@nestjs/jwt';
 import { Request, Response } from 'express';
 import { PayloadDto } from './auth/types/jwtPayload.dto';
+import { UserService } from './user/user.service';
+import { createUserByIdLoader } from './dataloaders/user-by-id.loader';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     GraphQLModule.forRootAsync<ApolloDriverConfig>({
       driver: ApolloDriver,
-      imports: [JwtModule],
-      inject: [JwtService, ConfigService],
+      imports: [JwtModule, UserModule],
+      inject: [JwtService, ConfigService, UserService],
       useFactory: async (
         jwtService: JwtService,
         configService: ConfigService,
+        userService: UserService,
       ) => {
         const secret = configService.get<string>('JWT_SECRET');
         return {
@@ -47,10 +50,15 @@ import { PayloadDto } from './auth/types/jwtPayload.dto';
               }
             }
 
+            const loaders = {
+              userById: createUserByIdLoader(userService),
+            };
+
             return {
               jwtPayload,
               req,
               res,
+              loaders,
             };
           },
         };

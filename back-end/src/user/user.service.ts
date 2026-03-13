@@ -14,6 +14,11 @@ export class UserService {
     private userModel: Model<User>,
   ) {}
 
+  async findManyByIds(ids: readonly string[]): Promise<User[]> {
+    if (!ids.length) return [];
+    return this.userModel.find({ _id: { $in: ids } }).exec();
+  }
+
   async getByEmail(email: string): Promise<User> {
     const user = await this.userModel.findOne({ email: email }).exec();
     if (!user) {
